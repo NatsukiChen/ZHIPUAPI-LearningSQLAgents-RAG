@@ -1,0 +1,23 @@
+
+.env
+.lang-venv/
+venv/
+env/
+data_base/vector_db/
+*.sqlite3
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+Agent
+agentic-ai-main
+cv course
+langchain-tutorials-main
+LangChainStudy-master
+metaproject
+rag-from-scratch-main
+test
+附LangChain自定义 LLM.ipynb
+附LangChain自定义Embedding封装讲解.ipynb
+agentic-ai-main.zip
+C4.ipynb
+embedding_zhipu.ipynb
