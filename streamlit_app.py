@@ -8,7 +8,6 @@ import sys
 sys.path.append("Embedding.ipynb") # 将父目录放入系统路径中
 from zhipuai_embedding import ZhipuAIEmbeddings
 from langchain_community.vectorstores import Chroma
-zp_api_key = os.environ['ZHIPU_API_KEY']
 
 def get_retriever():
     # 定义 Embeddings
@@ -95,28 +94,52 @@ def gen_response(chain, input, chat_history):
 def main():
     st.markdown('### 🦜🔗 SQL 学习助手')
 
-    # 用于跟踪对话历史
+    # 1. 在左侧边栏添加 API Key 输入框
+    with st.sidebar:
+        st.markdown("## ⚙️ 设置")
+        user_api_key = st.text_input("请输入你的智谱 API Key", type="password")
+        st.markdown("[获取智谱 API Key](https://bigmodel.cn/usercenter/apikeys)")
+
+    # 2. 拦截检查：如果没有输入 Key，则停止运行后续代码并提示用户
+    if not user_api_key:
+        st.warning("👈 请先在左侧边栏输入智谱 API Key 以启动应用")
+        st.stop()  
+
+    # 3. 将用户输入的 Key 动态写入环境变量，供后续的 llm 和 embedding 调用
+    os.environ["ZHIPU_API_KEY"] = user_api_key
+
+    # 4. 初始化会话状态（对话历史与问答链）
     if "messages" not in st.session_state:
         st.session_state.messages = []
-    # 存储检索问答链
+        
+    # 注意：这里的 get_qa_history_chain() 会在用户输入 Key 之后才执行，
+    # 因此能够成功读取到上面 os.environ 刚刚写入的 ZHIPU_API_KEY
     if "qa_history_chain" not in st.session_state:
         st.session_state.qa_history_chain = get_qa_history_chain()
+        
+    # 5. 创建固定高度的对话气泡容器
     messages = st.container(height=550)
-    # 显示整个对话历史
+    
+    # 6. 渲染历史对话
     for message in st.session_state.messages:
-            with messages.chat_message(message[0]):
-                st.write(message[1])
-    if prompt := st.chat_input("Say something"):
-        # 将用户输入添加到对话历史中
+        with messages.chat_message(message[0]):
+            st.write(message[1])
+            
+    # 7. 监听底部输入框并处理新问题
+    if prompt := st.chat_input("请提问关于 SQL 的问题..."):
+        # 将用户输入渲染并保存
         st.session_state.messages.append(("human", prompt))
         with messages.chat_message("human"):
             st.write(prompt)
 
+        # 传递给问答链生成流式响应
         answer = gen_response(
             chain=st.session_state.qa_history_chain,
             input=prompt,
             chat_history=st.session_state.messages
         )
+        
+        # 将 AI 回复以打字机效果渲染并保存
         with messages.chat_message("ai"):
             output = st.write_stream(answer)
         st.session_state.messages.append(("ai", output))
